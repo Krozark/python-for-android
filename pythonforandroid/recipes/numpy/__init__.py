@@ -54,7 +54,7 @@ class NumpyRecipe(MesonRecipe):
     def get_hostrecipe_env(self, arch):
         env = super().get_hostrecipe_env(arch)
         env["RANLIB"] = shutil.which("ranlib")
-        env["LDFLAGS"] += " -lm"
+        env["LDFLAGS"] = env["LDFLAGS"] + " -lm"
         return env
 
 

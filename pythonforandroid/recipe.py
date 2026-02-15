@@ -535,6 +535,11 @@ class Recipe(metaclass=RecipeMeta):
         if arch is None:
             arch = self.filtered_archs[0]
         env = arch.get_env(with_flags_in_cc=with_flags_in_cc)
+
+        for proxy_key in ['HTTP_PROXY', 'http_proxy', 'HTTPS_PROXY', 'https_proxy']:
+            if proxy_key in environ:
+                env[proxy_key] = environ[proxy_key]
+
         return env
 
     def prebuild_arch(self, arch):
@@ -878,7 +883,7 @@ class PythonRecipe(Recipe):
                  on python2 or python3 which can break the dependency graph
     '''
 
-    hostpython_prerequisites = []
+    hostpython_prerequisites = ['setuptools']
     '''List of hostpython packages required to build a recipe'''
 
     _host_recipe = None
@@ -974,7 +979,7 @@ class PythonRecipe(Recipe):
         env['LANG'] = "en_GB.UTF-8"
 
         # Binaries made by packages installed by pip
-        self.patch_shebangs(self._host_recipe.local_bin, self.real_hostpython_location)
+        self.patch_shebangs(self._host_recipe.local_bin, self._host_recipe.python_exe)
         env["PATH"] = self._host_recipe.local_bin + ":" + self._host_recipe.site_bin + ":" + env["PATH"]
 
         host_env = self.get_hostrecipe_env(arch)
@@ -1017,21 +1022,13 @@ class PythonRecipe(Recipe):
 
         info('Installing {} into site-packages'.format(self.name))
 
-        hostpython = sh.Command(self.hostpython_location)
         hpenv = env.copy()
         with current_directory(self.get_build_dir(arch.arch)):
-
-            if isfile("setup.py"):
-                shprint(hostpython, 'setup.py', 'install', '-O2',
-                        '--root={}'.format(self.ctx.get_python_install_dir(arch.arch)),
-                        '--install-lib=.',
-                        _env=hpenv, *self.setup_extra_args)
-
-                # If asked, also install in the hostpython build dir
-                if self.install_in_hostpython:
-                    self.install_hostpython_package(arch)
-            else:
-                warning("`PythonRecipe.install_python_package` called without `setup.py` file!")
+            shprint(self._host_recipe.pip, 'install', '.',
+                    '--compile', '--target',
+                    self.ctx.get_python_install_dir(arch.arch),
+                    _env=hpenv, *self.setup_extra_args
+            )
 
     def get_hostrecipe_env(self, arch=None):
         env = environ.copy()
@@ -1047,9 +1044,8 @@ class PythonRecipe(Recipe):
 
     def install_hostpython_package(self, arch):
         env = self.get_hostrecipe_env(arch)
-        real_hostpython = sh.Command(self.real_hostpython_location)
-        shprint(real_hostpython, 'setup.py', 'install', '-O2',
-                '--install-lib=Lib/site-packages',
+        shprint(self._host_recipe.pip, 'install', '.',
+                '--compile',
                 '--root={}'.format(self._host_recipe.site_root),
                 _env=env, *self.setup_extra_args)
 
@@ -1077,8 +1073,7 @@ class PythonRecipe(Recipe):
             pip_options.append("--upgrade")
         # Use system's pip
         pip_env = self.get_hostrecipe_env()
-        pip_env["HOME"] = "/tmp"
-        shprint(sh.Command(self.real_hostpython_location), "-m", "pip", *pip_options, _env=pip_env)
+        shprint(self._host_recipe.pip, *pip_options, _env=pip_env)
 
     def restore_hostpython_prerequisites(self, packages):
         _packages = []
@@ -1095,7 +1090,7 @@ class CompiledComponentsPythonRecipe(PythonRecipe):
 
     def build_arch(self, arch):
         '''Build any cython components, then install the Python module by
-        calling setup.py install with the target Python dir.
+        calling pip install with the target Python dir.
         '''
         Recipe.build_arch(self, arch)
         self.install_hostpython_prerequisites()
@@ -1144,7 +1139,7 @@ class CythonRecipe(PythonRecipe):
 
     def build_arch(self, arch):
         '''Build any cython components, then install the Python module by
-        calling setup.py install with the target Python dir.
+        calling pip install with the target Python dir.
         '''
         Recipe.build_arch(self, arch)
         self.build_cython_components(arch)
@@ -1272,10 +1267,14 @@ class PyProjectRecipe(PythonRecipe):
         return env
 
     def get_wheel_platform_tag(self, arch):
+        # https://peps.python.org/pep-0738/#packaging
+        # official python only supports 64 bit:
+        # android_21_arm64_v8a
+        # android_21_x86_64
         return f"android_{self.ctx.ndk_api}_" + {
-            "armeabi-v7a": "arm",
-            "arm64-v8a": "aarch64",
+            "arm64-v8a": "arm64_v8a",
             "x86_64": "x86_64",
+            "armeabi-v7a": "arm",
             "x86": "i686",
         }[arch.arch]
 
@@ -1313,7 +1312,7 @@ class PyProjectRecipe(PythonRecipe):
             return
 
         self.install_hostpython_prerequisites(
-            packages=["build[virtualenv]", "pip", "setuptools"] + self.hostpython_prerequisites
+            packages=["build[virtualenv]", "pip", "setuptools", "patchelf"] + self.hostpython_prerequisites
         )
         self.patch_shebangs(self._host_recipe.site_bin, self.real_hostpython_location)
 

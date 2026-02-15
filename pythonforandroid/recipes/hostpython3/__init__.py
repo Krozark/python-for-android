@@ -5,6 +5,7 @@ from multiprocessing import cpu_count
 from pathlib import Path
 from os.path import join
 
+from packaging.version import Version
 from pythonforandroid.logger import shprint
 from pythonforandroid.recipe import Recipe
 from pythonforandroid.util import (
@@ -35,18 +36,17 @@ class HostPython3Recipe(Recipe):
         :class:`~pythonforandroid.python.HostPythonRecipe`
     '''
 
-    version = '3.11.5'
-    name = 'hostpython3'
+    version = '3.14.2'
+
+    url = 'https://github.com/python/cpython/archive/refs/tags/v{version}.tar.gz'
+    '''The default url to download our host python recipe. This url will
+    change depending on the python version set in attribute :attr:`version`.'''
 
     build_subdir = 'native-build'
     '''Specify the sub build directory for the hostpython3 recipe. Defaults
     to ``native-build``.'''
 
-    url = 'https://www.python.org/ftp/python/{version}/Python-{version}.tgz'
-    '''The default url to download our host python recipe. This url will
-    change depending on the python version set in attribute :attr:`version`.'''
-
-    patches = ['patches/pyconfig_detection.patch']
+    patches = ["fix_ensurepip.patch"]
 
     @property
     def _exe_name(self):
@@ -95,6 +95,53 @@ class HostPython3Recipe(Recipe):
     def get_path_to_python(self):
         return join(self.get_build_dir(), self.build_subdir)
 
+    @property
+    def site_root(self):
+        return join(self.get_path_to_python(), "root")
+
+    @property
+    def site_bin(self):
+        return join(self.site_root, self.site_dir, "bin")
+
+    @property
+    def local_bin(self):
+        return join(self.site_root, "usr/local/bin/")
+
+    @property
+    def site_dir(self):
+        p_version = Version(self.version)
+        return join(
+            self.site_root,
+            f"usr/local/lib/python{p_version.major}.{p_version.minor}/site-packages/"
+        )
+
+    @property
+    def _pip(self):
+        return join(self.local_bin, "pip3")
+
+    @property
+    def pip(self):
+        return sh.Command(self._pip)
+
+    def fix_pip_shebangs(self):
+
+        if not os.path.exists(self.local_bin):
+            return
+
+        for filename in os.listdir(self.local_bin):
+            if not filename.startswith("pip"):
+                continue
+
+            pip_path = os.path.join(self.local_bin, filename)
+
+            with open(pip_path, "rb") as file:
+                file_lines = file.read().splitlines()
+
+            file_lines[0] = f"#!{self.python_exe}".encode()
+
+            with open(pip_path, "wb") as file:
+                file.write(b"\n".join(file_lines) + b"\n")
+
     def build_arch(self, arch):
         env = self.get_recipe_env(arch)
 
@@ -105,9 +152,11 @@ class HostPython3Recipe(Recipe):
         ensure_dir(build_dir)
 
         # Configure the build
+        build_configured = False
         with current_directory(build_dir):
             if not Path('config.status').exists():
                 shprint(sh.Command(join(recipe_build_dir, 'configure')), _env=env)
+                build_configured = True
 
         with current_directory(recipe_build_dir):
             # Create the Setup file. This copying from Setup.dist is
@@ -138,7 +187,16 @@ class HostPython3Recipe(Recipe):
                     shprint(sh.cp, exe, self.python_exe)
                     break
 
+        ensure_dir(self.site_root)
         self.ctx.hostpython = self.python_exe
+
+        if build_configured:
+
+            shprint(
+                sh.Command(self.python_exe), "-m", "ensurepip", "--root", self.site_root, "-U",
+                _env={"HOME": "/tmp", "PATH": self.local_bin}
+            )
+            self.fix_pip_shebangs()
 
 
 recipe = HostPython3Recipe()

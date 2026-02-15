@@ -3,7 +3,7 @@ from pythonforandroid.recipe import PyProjectRecipe
 
 class AvaCommonRecipe(PyProjectRecipe):
     version = 'master'
-    url = 'https://github.com/Krozark/Ava-common/archive/refs/heads/{version}.tar.gz'
+    url = 'git+https://github.com/Krozark/Ava-common/'
     depends = ['setuptools']
 
 

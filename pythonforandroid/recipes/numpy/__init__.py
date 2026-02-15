@@ -36,7 +36,7 @@ class NumpyRecipe(MesonRecipe):
                 "python3", self.ctx).get_build_dir(arch.arch), "android-build", "python")
         return env
 
-    def build_arch(self, arch):
+    def build_arch(self, arch=None):
         super().build_arch(arch)
         self.restore_hostpython_prerequisites(["cython"])
 

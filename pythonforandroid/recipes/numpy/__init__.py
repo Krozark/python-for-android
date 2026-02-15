@@ -6,9 +6,9 @@ NUMPY_NDK_MESSAGE = "In order to build numpy, you must set minimum ndk api (mina
 
 
 class NumpyRecipe(MesonRecipe):
-    version = 'v2.3.0'
+    version = 'v1.26.4'
     url = 'git+https://github.com/numpy/numpy'
-    hostpython_prerequisites = ["Cython>=3.0.6", "numpy"]  # meson does not detects venv's cython
+    hostpython_prerequisites = ["Cython>=3.0.6"]  # meson does not detects venv's cython
     extra_build_args = ['-Csetup-args=-Dblas=none', '-Csetup-args=-Dlapack=none']
     need_stl_shared = True
     min_ndk_api_support = 24
@@ -43,6 +43,7 @@ class NumpyRecipe(MesonRecipe):
     def get_hostrecipe_env(self, arch=None):
         env = super().get_hostrecipe_env(arch=arch)
         env['RANLIB'] = shutil.which('ranlib')
+        env["LDFLAGS"] = env.get("LDFLAGS") + " -lm"
         return env
 
 

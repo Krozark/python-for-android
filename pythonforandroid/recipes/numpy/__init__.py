@@ -1,3 +1,6 @@
+from pythonforandroid.recipe import Recipe, MesonRecipe
+from pythonforandroid.logger import error
+from os.path import join
 import shutil
 from os.path import join
 
@@ -53,7 +56,7 @@ class NumpyRecipe(MesonRecipe):
 
     def get_hostrecipe_env(self, arch):
         env = super().get_hostrecipe_env(arch)
-        env["RANLIB"] = shutil.which("ranlib")
+        env['RANLIB'] = shutil.which('ranlib')
         env["LDFLAGS"] = env.get("LDFLAGS", "") + " -lm"
         return env
 

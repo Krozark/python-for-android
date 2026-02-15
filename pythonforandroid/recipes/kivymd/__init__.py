@@ -8,6 +8,7 @@ class kivyMDRecipe(PythonRecipe):
     depends = [
         "kivy",
         "materialyoucolor",
+        "materialshapes",
         "exceptiongroup",
         "asyncgui",
         "asynckivy",
@@ -16,6 +17,7 @@ class kivyMDRecipe(PythonRecipe):
     patches = ["kv.patch"]
     call_hostpython_via_targetpython = False
     install_in_hostpython = True
+    setup_extra_args = ["--no-deps"]
 
 
 recipe = kivyMDRecipe()

@@ -2,8 +2,9 @@ from pythonforandroid.recipe import PyProjectRecipe
 
 
 class AvaCommonRecipe(PyProjectRecipe):
-    version = 'master'
-    url = 'git+https://github.com/Krozark/Ava-common/'
+    name = 'sound-player'
+    version = '1.0.4'
+    url = 'https://github.com/Krozark/sound-player/archive/{version}.tar.gz'
     depends = ['setuptools']
 
 

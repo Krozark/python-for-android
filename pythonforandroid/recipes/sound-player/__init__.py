@@ -3,7 +3,7 @@ from pythonforandroid.recipe import PyProjectRecipe
 
 class AvaCommonRecipe(PyProjectRecipe):
     name = 'sound-player'
-    version = '1.0.4'
+    version = '1.0.5'
     url = 'https://github.com/Krozark/sound-player/archive/{version}.tar.gz'
     depends = ['setuptools']
 

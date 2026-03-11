@@ -5,8 +5,8 @@ from pythonforandroid.recipe import PyProjectRecipe
 
 class SoundPlayerRecipe(PyProjectRecipe):
     name = 'sound-player'
-    version = "1.1.6"
-    # version = "master"
+    # version = "1.1.6"
+    version = "master"
     url = 'git+https://github.com/Krozark/sound-player/'
     depends = ['setuptools']
 

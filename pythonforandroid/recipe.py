@@ -1313,7 +1313,7 @@ class PyProjectRecipe(PythonRecipe):
             return
 
         self.install_hostpython_prerequisites(
-            packages=["build[virtualenv]", "pip", "setuptools"] + self.hostpython_prerequisites
+            packages=["pip", "setuptools"] + self.hostpython_prerequisites
         )
         self.patch_shebangs(self._host_recipe.site_bin, self.real_hostpython_location)
 
@@ -1324,13 +1324,28 @@ class PyProjectRecipe(PythonRecipe):
         # copy hostpython to built python to ensure correct selection of libs and includes
         shprint(sh.cp, self.real_hostpython_location, self.ctx.python_recipe.python_exe)
 
+        # Use `pip wheel --no-build-isolation` instead of `python -m build --no-isolation`.
+        # Both skip the isolated venv, but `python -m build --no-isolation` still verifies
+        # build-system.requires via importlib.metadata before building.  In p4a's
+        # hostpython3 environment packages installed with `pip --target` are on PYTHONPATH
+        # but not discovered by importlib.metadata, so that check always fails.
+        # `pip wheel --no-build-isolation` invokes the build backend directly via PEP 517
+        # without any prior metadata check, relying purely on PYTHONPATH for imports.
+        #
+        # extra_build_args use -Ckey=val (python-build format); convert to
+        # --config-settings key=val (pip-wheel format).
+        config_settings = []
+        for arg in self.extra_build_args:
+            if arg.startswith('-C'):
+                config_settings += ['--config-settings', arg[2:]]
+
         build_args = [
-            "-m",
-            "build",
-            "--wheel",
-            "--config-setting",
-            "builddir={}".format(sub_build_dir),
-        ] + self.extra_build_args
+            "-m", "pip", "wheel",
+            "--no-build-isolation",
+            "--no-deps",
+            "-w", "dist",
+            "--config-settings", "builddir={}".format(sub_build_dir),
+        ] + config_settings + ["."]
 
         built_wheels = []
         with current_directory(build_dir):
@@ -1413,6 +1428,10 @@ class MesonRecipe(PyProjectRecipe):
         return option_data
 
     def ensure_args(self, *args):
+        # Guard against mutating the inherited class-variable list, which would
+        # bleed meson cross-file args into unrelated PyProjectRecipe subclasses.
+        if "extra_build_args" not in self.__dict__:
+            self.extra_build_args = list(self.extra_build_args)
         for arg in args:
             if arg not in self.extra_build_args:
                 self.extra_build_args.append(arg)

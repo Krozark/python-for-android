@@ -3,10 +3,10 @@ from pythonforandroid.recipe import PyProjectRecipe
 
 class AvaCommonRecipe(PyProjectRecipe):
     name = 'ava-common'
-    # version = 'master'
-    version = '1.4.3'
+    # version = '1.4.3'
+    version = 'master'
     url = 'git+https://github.com/Krozark/Ava-common/'
-    depends = ['setuptools']
+    depends = []
 
 
 recipe = AvaCommonRecipe()

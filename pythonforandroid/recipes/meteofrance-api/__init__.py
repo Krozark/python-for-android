@@ -1,18 +1,28 @@
-from pythonforandroid.recipe import PyProjectRecipe
+import os
+import sys
+
+import sh
+
+from pythonforandroid.logger import shprint
+from pythonforandroid.recipe import PythonRecipe
 
 
-class MeteofranceApiRecipe(PyProjectRecipe):
-    version = "1.4.0"
-    url = "https://files.pythonhosted.org/packages/87/15/1c8fe7e537042e9d83d5fc4707c2632483c95194418b7cf75fc261739674/meteofrance_api-1.4.0.tar.gz"
+class MeteofranceApiRecipe(PythonRecipe):
     name = "meteofrance-api"
-    depends = [
-        "urllib3",
-        "charset-normalizer",
-        "typing_extensions",
-        "certifi",
-        "pytz",
-        "idna",
-    ]
+    version = "1.4.0"
+    url = None
+    depends = []
+
+    def build_arch(self, arch):
+        env = {k: v for k, v in os.environ.items()
+               if k not in ("PYTHONHOME", "PYTHONPATH", "PYTHONNOUSERSITE")}
+        shprint(
+            sh.Command(sys.executable), "-m", "pip", "install",
+            f"{self.name}=={self.version}",
+            "--target", self.ctx.get_python_install_dir(arch.arch),
+            "--only-binary", ":all:",
+            _env=env,
+        )
 
 
 recipe = MeteofranceApiRecipe()

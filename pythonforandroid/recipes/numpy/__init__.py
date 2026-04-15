@@ -10,7 +10,12 @@ NUMPY_NDK_MESSAGE = "In order to build numpy, you must set minimum ndk api (mina
 class NumpyRecipe(MesonRecipe):
     version = "v1.26.5"
     url = "git+https://github.com/numpy/numpy"
-    hostpython_prerequisites = ["Cython==3.0.6"]  # meson does not detects venv's cython
+    # meson does not detect venv's cython; meson-python must be pre-installed
+    # in hostpython3 because the isolated build venv created by p4a's hostpython
+    # (which lacks some stdlib C extensions) cannot import mesonpy on its own.
+    # --no-isolation tells `python -m build` to skip the isolated venv and use
+    # the already-installed packages in hostpython3 directly.
+    hostpython_prerequisites = ["Cython==3.0.6", "meson-python>=0.15.0,<0.16.0"]
     extra_build_args = ["-Csetup-args=-Dblas=none", "-Csetup-args=-Dlapack=none"]
     need_stl_shared = True
 

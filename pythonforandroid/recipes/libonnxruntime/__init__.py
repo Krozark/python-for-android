@@ -9,10 +9,10 @@ from pythonforandroid.recipe import Recipe
 
 
 class LibOnnxRuntimeRecipe(Recipe):
-    version = '1.24.3'
+    version = '1.24.4'
     url = 'https://github.com/microsoft/onnxruntime/archive/refs/tags/v{version}.tar.gz'
     built_libraries = {'libonnxruntime.so': 'build'}
-    patches = ['patches/mlasi_bfloat.patch']
+    patches = ['patches/mlasi_bfloat.patch', 'patches/cse_arm32_alignment.patch']
 
     def build_arch(self, arch):
         source_dir = self.get_build_dir(arch.arch)

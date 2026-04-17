@@ -9,6 +9,7 @@ from pythonforandroid.recipe import Recipe
 
 
 class SherpaOnnxRecipe(Recipe):
+    name = "sherpa-onnx"
     version = '1.12.38'
     url = 'https://github.com/k2-fsa/sherpa-onnx/archive/refs/tags/v{version}.tar.gz'
     depends = ['libonnxruntime']

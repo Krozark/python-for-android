@@ -9,6 +9,7 @@ from pythonforandroid.recipe import Recipe
 
 
 class LibOnnxRuntimeRecipe(Recipe):
+    name = "libonnxruntime"
     version = '1.24.4'
     url = 'https://github.com/microsoft/onnxruntime/archive/refs/tags/v{version}.tar.gz'
     built_libraries = {'libonnxruntime.so': 'build'}

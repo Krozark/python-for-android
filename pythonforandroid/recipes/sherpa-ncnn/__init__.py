@@ -9,6 +9,7 @@ from pythonforandroid.recipe import Recipe
 
 
 class SherpaNcnnRecipe(Recipe):
+    name = "sherpa-ncnn"
     version = '2.1.15'
     url = 'https://github.com/k2-fsa/sherpa-ncnn/archive/refs/tags/v{version}.tar.gz'
     built_libraries = {

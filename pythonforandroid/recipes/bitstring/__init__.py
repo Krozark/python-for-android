@@ -2,9 +2,9 @@ from pythonforandroid.recipe import PythonRecipe
 
 
 class BitstringRecipe(PythonRecipe):
-    version = "4.4.0"
+    version = "3.1.9"
     url = "https://pypi.python.org/packages/source/b/bitstring/bitstring-{version}.tar.gz"
-    depends = ["setuptools", "bitarray", "tibs"]
+    depends = ["setuptools"]
     call_hostpython_via_targetpython = False
 
 

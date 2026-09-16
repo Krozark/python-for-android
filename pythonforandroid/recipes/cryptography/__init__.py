@@ -8,6 +8,7 @@ class CryptographyRecipe(RustCompiledComponentsRecipe):
     version = '46.0.3'
     url = 'https://github.com/pyca/cryptography/archive/refs/tags/{version}.tar.gz'
     depends = ['openssl', 'cffi']
+    hostpython_prerequisites = ['maturin']
 
     def get_recipe_env(self, arch, **kwargs):
         env = super().get_recipe_env(arch, **kwargs)

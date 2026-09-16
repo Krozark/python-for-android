@@ -18,6 +18,7 @@ class CryptographyRecipe(RustCompiledComponentsRecipe):
         openssl_libs = "{}_OPENSSL_LIB_DIR".format(build_target)
         env[openssl_include] = join(openssl_build_dir, 'include')
         env[openssl_libs] = join(openssl_build_dir)
+        env["ANDROID_API_LEVEL"] = str(self.ctx.ndk_api)
         return env
 
 

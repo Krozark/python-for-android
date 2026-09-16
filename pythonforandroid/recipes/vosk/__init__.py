@@ -2,6 +2,8 @@ from os.path import basename, dirname, exists, join
 import zipfile
 
 from pythonforandroid.logger import info
+import sh
+
 from pythonforandroid.recipe import PythonRecipe, current_directory, shprint
 from pythonforandroid.util import BuildInterruptingException, ensure_dir
 
@@ -38,9 +40,11 @@ class VoskRecipe(PythonRecipe):
         install_dir = self.ctx.get_python_install_dir(arch.arch)
 
         info("Installing Vosk Python bindings into site-packages")
+        hostpython = sh.Command(self.real_hostpython_location)
         with current_directory(python_dir):
             shprint(
-                self._host_recipe.pip,
+                hostpython,
+                "-m", "pip",
                 "install",
                 ".",
                 "--compile",

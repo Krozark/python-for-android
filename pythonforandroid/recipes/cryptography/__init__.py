@@ -19,6 +19,12 @@ class CryptographyRecipe(RustCompiledComponentsRecipe):
         env[openssl_include] = join(openssl_build_dir, 'include')
         env[openssl_libs] = join(openssl_build_dir)
         env["ANDROID_API_LEVEL"] = str(self.ctx.ndk_api)
+        # maturin invokes the Android Python to run cryptography-cffi's build
+        # script, which needs cffi to be importable.  cffi for the target arch
+        # lives in get_python_install_dir, not the host site-packages that
+        # PYTHONPATH is already set to.
+        target_site = self.ctx.get_python_install_dir(arch.arch)
+        env["PYTHONPATH"] = target_site + ":" + env.get("PYTHONPATH", "")
         return env
 
 

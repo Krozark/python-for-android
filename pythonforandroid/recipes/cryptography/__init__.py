@@ -19,6 +19,9 @@ class CryptographyRecipe(RustCompiledComponentsRecipe):
         env[openssl_include] = join(openssl_build_dir, 'include')
         env[openssl_libs] = join(openssl_build_dir)
         env["ANDROID_API_LEVEL"] = str(self.ctx.ndk_api)
+        # _Py_NoneStruct is not exported by p4a's Android libpython; use
+        # Py_None() (stable API) instead.  Requires PyO3 >= 0.22.
+        env["PYO3_USE_ABI3_FORWARD_COMPATIBILITY"] = "1"
         return env
 
 

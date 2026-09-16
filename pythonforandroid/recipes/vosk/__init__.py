@@ -16,10 +16,6 @@ class VoskRecipe(PythonRecipe):
         "setuptools",
         "wheel",
         "cffi",
-        "requests",
-        "tqdm",
-        "srt",
-        "websockets",
     ]
     call_hostpython_via_targetpython = False
 

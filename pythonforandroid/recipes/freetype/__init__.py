@@ -24,8 +24,8 @@ class FreetypeRecipe(Recipe):
         https://sourceforge.net/projects/freetype/files/freetype2/2.5.3/
     """
 
-    version = '2.10.1'
-    url = 'https://download.savannah.gnu.org/releases/freetype/freetype-{version}.tar.gz'  # noqa
+    version = '2.14.1'
+    url = 'https://download-mirror.savannah.gnu.org/releases/freetype/freetype-{version}.tar.gz'  # noqa
     built_libraries = {'libfreetype.so': 'objs/.libs'}
 
     def get_recipe_env(self, arch=None, with_harfbuzz=False):

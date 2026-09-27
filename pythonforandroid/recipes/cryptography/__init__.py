@@ -8,6 +8,7 @@ class CryptographyRecipe(RustCompiledComponentsRecipe):
     version = '46.0.3'
     url = 'https://github.com/pyca/cryptography/archive/refs/tags/{version}.tar.gz'
     depends = ['openssl', 'cffi']
+    hostpython_prerequisites = ['maturin', 'cffi']
 
     def get_recipe_env(self, arch, **kwargs):
         env = super().get_recipe_env(arch, **kwargs)
@@ -17,6 +18,16 @@ class CryptographyRecipe(RustCompiledComponentsRecipe):
         openssl_libs = "{}_OPENSSL_LIB_DIR".format(build_target)
         env[openssl_include] = join(openssl_build_dir, 'include')
         env[openssl_libs] = join(openssl_build_dir)
+        env["ANDROID_API_LEVEL"] = str(self.ctx.ndk_api)
+        # Android's bionic linker only resolves symbols from explicitly listed
+        # NEEDED libraries.  abi3 extensions don't link against libpython, so
+        # _Py_NoneStruct (and other Python symbols) can't be found at dlopen
+        # time.  Explicitly link against libpython so Android resolves them.
+        python_ver = self.python_major_minor_version
+        env["RUSTFLAGS"] = (
+            env.get("RUSTFLAGS", "")
+            + " -Clink-args=-lpython{}".format(python_ver)
+        )
         return env
 
 

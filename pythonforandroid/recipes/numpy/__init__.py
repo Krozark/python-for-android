@@ -10,11 +10,6 @@ NUMPY_NDK_MESSAGE = (
 class NumpyRecipe(MesonRecipe):
     version = "v2.3.0"
     url = "git+https://github.com/numpy/numpy"
-    # matches numpy's own [build-system] requires in pyproject.toml: the
-    # mesonpy PEP 517 backend must be importable in hostpython3 for `pip
-    # wheel --no-build-isolation` to build it (MesonRecipe.build_arch only
-    # auto-installs meson/ninja, not the meson-python backend itself).
-    hostpython_prerequisites = ["Cython>=3.0.6", "meson-python>=0.15.0"]
     extra_build_args = ["-Csetup-args=-Dblas=none", "-Csetup-args=-Dlapack=none"]
     opt_depends = ["libopenblas"]
     need_stl_shared = True

@@ -1383,7 +1383,7 @@ class PyProjectRecipe(PythonRecipe):
             warning("Skipping build because it does not appear to be a Python project.")
             return
         self.install_hostpython_prerequisites(
-            packages=["pip", "setuptools"] + self.hostpython_prerequisites
+            packages=["build[virtualenv]", "pip", "setuptools", "patchelf"] + self.hostpython_prerequisites
         )
 
         env = self.get_recipe_env(arch, with_flags_in_cc=True)
@@ -1391,28 +1391,13 @@ class PyProjectRecipe(PythonRecipe):
         sub_build_dir = join(build_dir, "p4a_android_build")
         ensure_dir(sub_build_dir)
 
-        # Use `pip wheel --no-build-isolation` instead of `python -m build --no-isolation`.
-        # Both skip the isolated venv, but `python -m build --no-isolation` still verifies
-        # build-system.requires via importlib.metadata before building.  In p4a's
-        # hostpython3 environment packages installed with `pip --target` are on PYTHONPATH
-        # but not discovered by importlib.metadata, so that check always fails.
-        # `pip wheel --no-build-isolation` invokes the build backend directly via PEP 517
-        # without any prior metadata check, relying purely on PYTHONPATH for imports.
-        #
-        # extra_build_args use -Ckey=val (python-build format); convert to
-        # --config-settings key=val (pip-wheel format).
-        config_settings = []
-        for arg in self.extra_build_args:
-            if arg.startswith('-C'):
-                config_settings += ['--config-settings', arg[2:]]
-
         build_args = [
-            "-m", "pip", "wheel",
-            "--no-build-isolation",
-            "--no-deps",
-            "-w", "dist",
-            "--config-settings", "builddir={}".format(sub_build_dir),
-        ] + config_settings + ["."]
+            "-m",
+            "build",
+            "--wheel",
+            "--config-setting",
+            "builddir={}".format(sub_build_dir),
+        ] + self.extra_build_args
 
         built_wheels = []
         with current_directory(build_dir):

@@ -2,13 +2,12 @@ from pythonforandroid.recipe import PythonRecipe
 
 
 class kivyMDRecipe(PythonRecipe):
-    version = "master"
+    version = "365aa9b96eee63e0e29c04de297dd222f478fce5"
     url = "https://github.com/kivymd/KivyMD/archive/{version}.zip"
 
     depends = [
         "kivy",
         "materialyoucolor",
-        "materialshapes",
         "exceptiongroup",
         "asyncgui",
         "asynckivy",
@@ -17,7 +16,6 @@ class kivyMDRecipe(PythonRecipe):
     patches = ["kv.patch"]
     call_hostpython_via_targetpython = False
     install_in_hostpython = True
-    setup_extra_args = ["--no-deps"]
 
 
 recipe = kivyMDRecipe()

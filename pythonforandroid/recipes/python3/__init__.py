@@ -55,7 +55,6 @@ class Python3Recipe(TargetPythonRecipe):
     '''
 
     version = '3.14.2'
-    _p_version = Version(version)
     url = 'https://github.com/python/cpython/archive/refs/tags/v{version}.tar.gz'
     name = 'python3'
 
@@ -63,28 +62,6 @@ class Python3Recipe(TargetPythonRecipe):
         'patches/pyconfig_detection.patch',
         'patches/reproducible-buildinfo.diff',
     ]
-
-    if _p_version.major == 3 and _p_version.minor == 7:
-        patches += [
-            'patches/py3.7.1_fix-ctypes-util-find-library.patch',
-            'patches/py3.7.1_fix-zlib-version.patch',
-        ]
-
-    if 8 <= _p_version.minor <= 10:
-        patches.append('patches/py3.8.1.patch')
-
-    if _p_version.minor >= 11:
-        patches.append('patches/cpython-311-ctypes-find-library.patch')
-
-    if _p_version.minor >= 14:
-        patches.append('patches/3.14_armv7l_fix.patch')
-        patches.append('patches/3.14_fix_remote_debug.patch')
-
-    if shutil.which('lld') is not None:
-        if _p_version.minor == 7:
-            patches.append("patches/py3.7.1_fix_cortex_a8.patch")
-        elif _p_version.minor >= 8:
-            patches.append("patches/py3.8.1_fix_cortex_a8.patch")
 
     depends = ['hostpython3', 'sqlite3', 'openssl', 'libffi']
     # those optional depends allow us to build python compression modules:
@@ -105,7 +82,6 @@ class Python3Recipe(TargetPythonRecipe):
 
         # Android prefix
         '--prefix={prefix}',
-        '--exec-prefix={exec_prefix}',
         '--enable-loadable-sqlite-extensions',
 
         # Special cross compile args
@@ -115,11 +91,6 @@ class Python3Recipe(TargetPythonRecipe):
         'ac_cv_little_endian_double=yes',
         'ac_cv_header_bzlib_h=no',
     ]
-
-    if _p_version.minor >= 11:
-        configure_args.extend([
-            '--with-build-python={python_host_bin}',
-        ])
 
     '''The configure arguments needed to build the python recipe. Those are
     used in method :meth:`build_arch` (if not overwritten like python3's
@@ -210,11 +181,49 @@ class Python3Recipe(TargetPythonRecipe):
             flags=flags
         )
 
+    def apply_patches(self, arch, build_dir=None):
+
+        _p_version = Version(self.version)
+        if _p_version.major == 3 and _p_version.minor == 7:
+            self.patches += [
+                'patches/py3.7.1_fix-ctypes-util-find-library.patch',
+                'patches/py3.7.1_fix-zlib-version.patch',
+            ]
+
+        if 8 <= _p_version.minor <= 10:
+            self.patches.append('patches/py3.8.1.patch')
+
+        if _p_version.minor >= 11:
+            self.patches.append('patches/cpython-311-ctypes-find-library.patch')
+
+        if _p_version.minor >= 14:
+            self.patches.append('patches/3.14_armv7l_fix.patch')
+            self.patches.append('patches/3.14_fix_remote_debug.patch')
+
+        if shutil.which('lld') is not None:
+            if _p_version.minor == 7:
+                self.patches.append("patches/py3.7.1_fix_cortex_a8.patch")
+            elif _p_version.minor >= 8:
+                self.patches.append("patches/py3.8.1_fix_cortex_a8.patch")
+
+        self.patches = list(dict.fromkeys(self.patches))  # preserve order for reproducibility
+        super().apply_patches(arch, build_dir)
+
     def include_root(self, arch_name):
-        return join(self.get_build_dir(arch_name), 'Include')
+        _p_version = Version(self.version)
+        return join(
+            self.get_build_dir(arch_name), 'android-build', 'android-root',
+            'include', f'python{_p_version.major}.{_p_version.minor}'
+        )
 
     def link_root(self, arch_name):
         return join(self.get_build_dir(arch_name), 'android-build')
+
+    def get_python_root(self, arch):
+        return join(self.get_build_dir(arch.arch), 'android-build', 'android-root')
+
+    def get_android_python_exe(self, arch):
+        return join(self.get_python_root(arch), 'bin', self.name)
 
     def should_build(self, arch):
         return not isfile(join(self.link_root(arch.arch), self._libpython))
@@ -317,8 +326,14 @@ class Python3Recipe(TargetPythonRecipe):
         env['ZLIB_VERSION'] = line.replace('#define ZLIB_VERSION ', '')
         add_flags(' -I' + zlib_includes, ' -L' + zlib_lib_path, ' -lz')
 
-        if self._p_version.minor >= 13 and self.disable_gil:
+        _p_version = Version(self.version)
+        if _p_version.minor >= 11:
+            self.configure_args.append('--with-build-python={python_host_bin}')
+
+        if _p_version.minor >= 13 and self.disable_gil:
             self.configure_args.append("--disable-gil")
+
+        self.configure_args = list(dict.fromkeys(self.configure_args))  # preserve order for reproducibility
 
         return env
 
@@ -336,9 +351,8 @@ class Python3Recipe(TargetPythonRecipe):
         build_dir = join(recipe_build_dir, 'android-build')
         ensure_dir(build_dir)
 
-        # TODO: Get these dynamically, like bpo-30386 does
-        sys_prefix = '/usr/local'
-        sys_exec_prefix = '/usr/local'
+        sys_prefix = join(build_dir, "android-root")
+        ensure_dir(sys_prefix)
 
         env = self.get_recipe_env(arch)
         env = self.set_libs_flags(env, arch)
@@ -354,11 +368,10 @@ class Python3Recipe(TargetPythonRecipe):
                     *(' '.join(self.configure_args).format(
                                     android_host=env['HOSTARCH'],
                                     android_build=android_build,
-                                    python_host_bin=join(self.get_recipe(
+                                    python_host_bin=self.get_recipe(
                                         'host' + self.name, self.ctx
-                                    ).get_path_to_python(), "python3"),
-                                    prefix=sys_prefix,
-                                    exec_prefix=sys_exec_prefix)).split(' '),
+                                    ).python_exe,
+                                    prefix=sys_prefix).split(' ')),
                     _env=env)
 
             shprint(
@@ -367,6 +380,8 @@ class Python3Recipe(TargetPythonRecipe):
                 'INSTSONAME={lib_name}'.format(lib_name=self._libpython),
                 _env=env
             )
+            shprint(sh.make, 'install', _env=env)
+
             # rename executable
             if isfile("python"):
                 sh.cp('python', 'libpythonbin.so')

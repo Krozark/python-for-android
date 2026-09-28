@@ -24,6 +24,12 @@ class VoskRecipe(PythonRecipe):
     # unused submodule), so it's genuinely unneeded here.
     depends = ["cffi", "srt"]
     python_depends = []
+    # vosk/__init__.py's open_dll() only recognizes win32/linux/darwin for
+    # picking the native library to load. CPython's own Android build sets
+    # sys.platform to "android" (a distinct value since CPython 3.13, not
+    # "linux"), so it hits the `else: raise TypeError("Unsupported
+    # platform")` branch. libvosk.so is still a plain ELF .so either way.
+    patches = ["android-platform.patch"]
     hostpython_prerequisites = [
         "setuptools",
         "wheel",

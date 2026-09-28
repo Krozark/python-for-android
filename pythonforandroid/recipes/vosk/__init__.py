@@ -65,6 +65,13 @@ class VoskRecipe(PythonRecipe):
                 ".",
                 "--compile",
                 "--no-deps",
+                # Without these, pip sees a same-version vosk already sitting
+                # in install_dir from a previous build and silently skips
+                # reinstalling it ("Requirement already satisfied"), even
+                # after the source (patches, version) changed -- a stale
+                # install can then survive across rebuilds undetected.
+                "--upgrade",
+                "--force-reinstall",
                 "--target",
                 install_dir,
                 _env=env,

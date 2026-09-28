@@ -12,13 +12,17 @@ class VoskRecipe(PythonRecipe):
     version = "0.3.45"
     url = "https://github.com/alphacep/vosk-api/archive/refs/tags/v{version}.tar.gz"
     site_packages_name = "vosk"
-    depends = ["cffi"]
-    # requests/tqdm/srt/websockets are only used by vosk's bundled
-    # vosk-transcriber CLI (model download progress, subtitle export,
-    # websocket streaming server), not by the vosk.Model/KaldiRecognizer
-    # API this app actually uses. srt in particular has no wheel at all
-    # on PyPI (sdist only), which hard-blocks p4a's --only-binary=:all:
-    # pure-Python install stage.
+    # srt is a real, unconditional `import srt` in vosk/__init__.py (not
+    # just used by the optional vosk-transcriber CLI as we first assumed
+    # -- removing it from python_depends alone broke the app at runtime
+    # with ModuleNotFoundError). It has no wheel on PyPI (sdist only), so
+    # it can't go through p4a's --only-binary=:all: pip stage like
+    # requests/tqdm (also imported unconditionally, but wheel-available)
+    # do; it needs its own recipe instead, listed here as a real
+    # recipe-to-recipe dependency rather than python_depends.
+    # websockets is NOT imported by vosk/__init__.py itself (only by an
+    # unused submodule), so it's genuinely unneeded here.
+    depends = ["cffi", "srt"]
     python_depends = []
     hostpython_prerequisites = [
         "setuptools",

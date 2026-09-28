@@ -13,7 +13,13 @@ class VoskRecipe(PythonRecipe):
     url = "https://github.com/alphacep/vosk-api/archive/refs/tags/v{version}.tar.gz"
     site_packages_name = "vosk"
     depends = ["cffi"]
-    python_depends = ["requests", "tqdm", "srt", "websockets"]
+    # requests/tqdm/srt/websockets are only used by vosk's bundled
+    # vosk-transcriber CLI (model download progress, subtitle export,
+    # websocket streaming server), not by the vosk.Model/KaldiRecognizer
+    # API this app actually uses. srt in particular has no wheel at all
+    # on PyPI (sdist only), which hard-blocks p4a's --only-binary=:all:
+    # pure-Python install stage.
+    python_depends = []
     hostpython_prerequisites = [
         "setuptools",
         "wheel",

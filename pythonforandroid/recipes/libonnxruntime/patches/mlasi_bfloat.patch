@@ -5,7 +5,15 @@
  #include <arm_neon.h>
  #endif
 +
-+#if defined(__aarch64__) && !defined(__ARM_FEATURE_BF16)
++// NDK r27+ / Clang 18's <arm_neon.h> unconditionally #includes <arm_bf16.h>
++// on aarch64 (regardless of __ARM_FEATURE_BF16, which is only set when the
++// target explicitly enables the BF16 ISA extension) -- arm_bf16.h already
++// typedefs bfloat16_t as the compiler-native __bf16. Redefining it here as
++// uint16_t is then a hard "typedef redefinition with different types" error.
++// __ARM_BF16_H is arm_bf16.h's own include guard: the reliable signal that
++// it was already included and already provided this typedef, regardless of
++// which feature-detection macros are or aren't set.
++#if defined(__aarch64__) && !defined(__ARM_BF16_H)
 +typedef uint16_t bfloat16_t;
 +#endif
 +

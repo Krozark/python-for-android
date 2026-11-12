@@ -1348,7 +1348,12 @@ class PyProjectRecipe(PythonRecipe):
 
     def install_wheel(self, arch, built_wheels):
         with patch_wheel_setuptools_logging():
-            from wheel.cli.tags import tags as wheel_tags
+            try:
+                # wheel >= 0.46 (CVE-2026-24049 fix) renamed this module from the public
+                # wheel.cli to the private wheel._commands; same `tags()` signature either way.
+                from wheel._commands.tags import tags as wheel_tags
+            except ModuleNotFoundError:
+                from wheel.cli.tags import tags as wheel_tags  # wheel < 0.46
             from wheel.wheelfile import WheelFile
         _wheel = built_wheels[0]
         built_wheel_dir = dirname(_wheel)

@@ -12,7 +12,7 @@ import zipfile
 import urllib.request
 from urllib.request import urlretrieve
 from os import listdir, unlink, environ, curdir, walk, chmod
-from sys import stdout
+from sys import executable, stdout
 from packaging.version import Version
 from multiprocessing import cpu_count
 import time
@@ -531,11 +531,10 @@ class Recipe(metaclass=RecipeMeta):
     def get_recipe_env(self, arch=None, with_flags_in_cc=True):
         """Return the env specialized for the recipe
         """
-        if arch is None:
-            arch = self.filtered_archs[0]
+        arch = arch or self.filtered_archs[0]
         env = arch.get_env(with_flags_in_cc=with_flags_in_cc)
 
-        for proxy_key in ['HTTP_PROXY', 'http_proxy', 'HTTPS_PROXY', 'https_proxy']:
+        for proxy_key in ('HTTP_PROXY', 'http_proxy', 'HTTPS_PROXY', 'https_proxy'):
             if proxy_key in environ:
                 env[proxy_key] = environ[proxy_key]
 
@@ -1180,8 +1179,7 @@ class CythonRecipe(PythonRecipe):
             build_dir = self.get_build_dir(arch.arch)
         with current_directory(build_dir):
             info('Stripping object files')
-            shprint(sh.find, '.', '-iname', '*.so', '-exec',
-                    '/usr/bin/echo', '{}', ';', _env=env)
+            shprint(sh.find, '.', '-iname', '*.so', '-print', _env=env)
             shprint(sh.find, '.', '-iname', '*.so', '-exec',
                     env['STRIP'].split(' ')[0], '--strip-unneeded',
                     # '/usr/bin/strip', '--strip-unneeded',
@@ -1237,6 +1235,26 @@ class CythonRecipe(PythonRecipe):
         ensure_dir(liblink_path)
 
         return env
+
+
+def retag_wheel(path, platform_tag):
+    """Retag a built wheel using wheel's CLI, including WHEEL and RECORD."""
+    result = subprocess.run(
+        [executable, '-m', 'wheel', 'tags', '--platform-tag',
+         platform_tag, '--remove', path],
+        capture_output=True, text=True,
+    )
+    if result.returncode:
+        raise RuntimeError(
+            f'wheel tags failed (exit {result.returncode}): {result.stderr.strip()}'
+        )
+    wheel_tag = result.stdout.strip()
+    if not wheel_tag or basename(wheel_tag) != wheel_tag or not wheel_tag.endswith('.whl'):
+        raise ValueError(f'Unexpected wheel tags output: {wheel_tag!r}')
+    selected_wheel = join(dirname(path), wheel_tag)
+    if not isfile(selected_wheel):
+        raise FileNotFoundError(selected_wheel)
+    return selected_wheel
 
 
 class PyProjectRecipe(PythonRecipe):
@@ -1348,22 +1366,12 @@ class PyProjectRecipe(PythonRecipe):
 
     def install_wheel(self, arch, built_wheels):
         with patch_wheel_setuptools_logging():
-            try:
-                # wheel >= 0.46 (CVE-2026-24049 fix) renamed this module from the public
-                # wheel.cli to the private wheel._commands; same `tags()` signature either way.
-                from wheel._commands.tags import tags as wheel_tags
-            except ModuleNotFoundError:
-                from wheel.cli.tags import tags as wheel_tags  # wheel < 0.46
             from wheel.wheelfile import WheelFile
-        _wheel = built_wheels[0]
-        built_wheel_dir = dirname(_wheel)
         # Fix wheel platform tag
-        wheel_tag = wheel_tags(
-            _wheel,
-            platform_tags=self.get_wheel_platform_tag(arch.arch),
-            remove=True,
+        selected_wheel = retag_wheel(
+            built_wheels[0], self.get_wheel_platform_tag(arch.arch)
         )
-        selected_wheel = join(built_wheel_dir, wheel_tag)
+        wheel_tag = basename(selected_wheel)
         _dev_wheel_dir = environ.get("P4A_WHEEL_DIR", False)
         if _dev_wheel_dir:
             ensure_dir(_dev_wheel_dir)
@@ -1377,7 +1385,6 @@ class PyProjectRecipe(PythonRecipe):
         with WheelFile(selected_wheel) as wf:
             for zinfo in wf.filelist:
                 wf.extract(zinfo, destination)
-            wf.close()
 
     def build_arch(self, arch):
         if self.check_prebuilt(arch, "skipping build_arch"):
@@ -1662,6 +1669,10 @@ class RustCompiledComponentsRecipe(PyProjectRecipe):
         env["CC_{}".format(build_target.replace("-", "_"))] = ndk_clang
         env["AR_{}".format(build_target.replace("-", "_"))] = self.ctx.ndk.llvm_ar
         realpython_dir = self.ctx.python_recipe.get_build_dir(arch.arch)
+
+        # maturin (used by every Rust recipe here) refuses to build without the
+        # target Android API level: "Failed to determine Android API level."
+        env["ANDROID_API_LEVEL"] = str(self.ctx.ndk_api)
 
         env["RUSTFLAGS"] = "-Clink-args=-L{} -L{}".format(
             self.ctx.get_libs_dir(arch.arch), join(realpython_dir, "android-build")

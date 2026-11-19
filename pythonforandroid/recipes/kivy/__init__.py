@@ -29,7 +29,7 @@ def is_kivy_less_than_3(recipe=None, arch=None):
 
 
 class KivyRecipe(PyProjectRecipe):
-    version = '2.3.1'
+    version = '2.3.2'
     url = 'https://github.com/kivy/kivy/archive/{version}.zip'
     name = 'kivy'
 
@@ -37,14 +37,6 @@ class KivyRecipe(PyProjectRecipe):
     python_depends = ['certifi', 'chardet', 'idna', 'requests', 'urllib3', 'filetype']
     hostpython_prerequisites = ["cython>=0.29.1,<=3.0.12"]
 
-    # sdl-gl-swapwindow-nogil.patch is needed to avoid a deadlock.
-    # See: https://github.com/kivy/kivy/pull/8025
-    # WARNING: Remove this patch when a new Kivy version is released.
-    patches = [
-        ("sdl-gl-swapwindow-nogil.patch", is_kivy_affected_by_deadlock_issue),
-        ("use_cython.patch", is_kivy_less_than_3),
-        ("no-ast-str.patch", is_kivy_less_than_3),
-    ]
 
     @property
     def need_stl_shared(self):

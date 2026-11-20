@@ -2,7 +2,7 @@ from pythonforandroid.recipe import PythonRecipe
 
 
 class kivyMDRecipe(PythonRecipe):
-    version = "2.0.0"
+    version = "365aa9b96eee63e0e29c04de297dd222f478fce5"
     url = "https://github.com/kivymd/KivyMD/archive/{version}.zip"
 
     depends = [

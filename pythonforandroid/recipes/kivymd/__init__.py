@@ -3,12 +3,13 @@ from pythonforandroid.recipe import PythonRecipe
 
 class kivyMDRecipe(PythonRecipe):
     version = "2.0.0"
-    url = "https://github.com/kivymd/KivyMD/archive/{version}.zip"
+    url = "https://github.com/Krozark/kivymd/archive/{version}.zip"
 
     depends = [
         "kivy",
+        "pillow",
         "materialyoucolor",
-        "exceptiongroup",
+        "materialshapes",
         "asyncgui",
         "asynckivy",
     ]

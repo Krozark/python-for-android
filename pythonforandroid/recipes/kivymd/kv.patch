@@ -1,8 +1,11 @@
 --- a/setup.py
 +++ b/setup.py
-@@ -80,4 +80,4 @@
-                try:
+@@ -78,7 +78,7 @@
+                 filepath = os.path.join(str(Path(*Path(root).parts[1:])), file)
+
+                 try:
 -                    out_files.append(filepath.split(f"kivymd{os.sep}")[1])
 +                    out_files.append(filepath.split(f"kivymd{os.sep}")[-1])
-                except IndexError:
-                    out_files.append(filepath)
+                 except IndexError:
+                     out_files.append(filepath)
+

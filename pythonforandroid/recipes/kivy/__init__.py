@@ -37,6 +37,14 @@ class KivyRecipe(PyProjectRecipe):
     python_depends = ['certifi', 'chardet', 'idna', 'requests', 'urllib3', 'filetype']
     hostpython_prerequisites = ['cython>=0.29.1,<=3.0.12', 'setuptools']
 
+    # Without this, kivy's own setup.py forces can_use_cython = False on android, which makes it
+    # look for pre-generated kivy/**/*.c files instead of cythonizing the shipped .pyx files.
+    # Those generated .c files aren't part of the GitHub tag archive (only of the PyPI sdist), so
+    # android builds break/race on missing .c files pulled in as shared deps between extensions.
+    patches = [
+        ("use_cython.patch", is_kivy_less_than_3),
+    ]
+
 
     @property
     def need_stl_shared(self):

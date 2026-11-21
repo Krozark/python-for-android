@@ -11,7 +11,10 @@ from pythonforandroid.recipe import Recipe
 class LibOnnxRuntimeRecipe(Recipe):
     name = "libonnxruntime"
     version = '1.24.4'
-    url = 'https://github.com/microsoft/onnxruntime/archive/refs/tags/v{version}.tar.gz'
+    # microsoft/onnxruntime doesn't tag v1.24.4 (404 on both the archive and the release page),
+    # so we build from Krozark's mirror fork, which does have the tag.
+    # url = 'https://github.com/microsoft/onnxruntime/archive/refs/tags/v{version}.tar.gz'
+    url = 'https://github.com/Krozark/onnxruntime/archive/refs/tags/v{version}.tar.gz'
     built_libraries = {'libonnxruntime.so': 'build'}
     patches = ['patches/mlasi_bfloat.patch', 'patches/cse_arm32_alignment.patch']
 
